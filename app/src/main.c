@@ -16,8 +16,8 @@
 #include <zephyr/logging/log.h>
 
 /* Bring-up switches Flip to 1 to include a subsystem */
-#define ENABLE_PPI  1
-#define ENABLE_QSPI 0
+#define ENABLE_PPI  0
+#define ENABLE_QSPI 1
 
 #if ENABLE_PPI
 #include "ppi_fork.h"
@@ -90,6 +90,7 @@ int main(void)
 			return err;
 		}
 
+		// sleeps to await the next burst
 		k_msleep(BURST_PERIOD_MS);
 	}
 #else

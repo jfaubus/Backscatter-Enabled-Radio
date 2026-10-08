@@ -87,6 +87,9 @@ static void qspi_config_fill(nrfx_qspi_config_t *cfg, nrf_qspi_frequency_t sck_d
  *
  * The pull is applied after nrfx_qspi_init() because init overwrites PIN_CNF.
  * (Strapping P1.06 to GND on the header has the same effect in hardware.)
+ * 
+ * Basically there's no external flash pulling this line down saying "hey
+ * Im ready" so were configuring it so that it constantly reads as "ready"
  */
 static void qspi_idle_pulldown_apply(void)
 {
@@ -117,6 +120,7 @@ int qspi_pattern_init(nrf_qspi_frequency_t sck_div)
 
 	qspi_config_fill(&cfg, sck_div);
 
+	// writes settings into the QSPI hardware registers and sets the pins up  w/ high drive no pull
 	err = nrfx_qspi_init(&cfg, NULL /* blocking mode */, NULL);
 	if (err != 0 && err != -EALREADY) {
 		LOG_ERR("nrfx_qspi_init failed (%d)", err);
@@ -125,6 +129,8 @@ int qspi_pattern_init(nrf_qspi_frequency_t sck_div)
 
 	qspi_idle_pulldown_apply();
 
+	// sends "read status register 0x05" adnd listens on I01 (configured to mock flash chip response)
+	// with I01 forver pulled down it should always read "ready" and activation succeeds
 	err = nrfx_qspi_activate(true);
 	if (err != 0 && err != -EALREADY) {
 		LOG_ERR("nrfx_qspi_activate failed (%d)", err);
@@ -215,8 +221,11 @@ int qspi_pattern_fill_burst(uint8_t byte, size_t len)
 		return -EINVAL;
 	}
 
+	// fills the ram buffer
 	memset(pattern_buf, byte, len);
 
+	// write these 256 bytes to flash address 0 and the CPU waits while the hardware the rest
+	// by DMA (remember it is not actually writing to Flash)
 	return nrfx_qspi_write(pattern_buf, len, 0);
 }
 
