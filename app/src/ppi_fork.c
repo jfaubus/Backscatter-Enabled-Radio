@@ -8,6 +8,8 @@
 #include <helpers/nrfx_gppi.h>
 #include <hal/nrf_gpio.h>
 
+#include "hfxo.h"
+
 LOG_MODULE_REGISTER(ppi_fork, LOG_LEVEL_INF);
 
 /*
@@ -76,6 +78,14 @@ int ppi_fork_start(uint32_t toggle_hz)
 
 	if (toggle_hz == 0U) {
 		return -EINVAL;
+	}
+
+	/* TIMER's 16 MHz base comes from HFCLK; without the crystal the output
+	 * inherits the RC oscillator's few-percent error (1 MHz read 970 kHz).
+	 */
+	err = hfxo_request();
+	if (err != 0) {
+		return err;
 	}
 
 	if (!nrfx_gpiote_init_check(&gpiote)) {

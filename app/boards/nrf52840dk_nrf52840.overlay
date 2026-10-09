@@ -1,52 +1,20 @@
 /*
- * nRF52840dk overlay for  QSPI + PPI
- *
- * Two independent things are going on here:
- *
- *  1. QSPI is taken away from Zephyr and given to the application.
- *     Disabling the node removes both the nordic,qspi-nor flash driver and
- *     the mx25r64 child, so nrfx_qspi can own the peripheral outright. The
- *     pins are then selected at runtime (see src/qspi_pattern.c) onto the
- *     Arduino header instead of the onboard MX25R6435F, so the signals can
- *     be probed and so that each burst is not a real page program into the
- *     flash (wear, plus a WIP-busy stall between bursts).
- *			this is really more relevant on the dev kit which has an external
- *			flash hooked up to the QSPI bus
- *
- *     CONFIG_NRFX_QSPI only depends on the node *existing*, not on it being
- *     enabled, so disabling it here does not disable the nrfx driver.
- *
- *  2. TIMER2 + GPIOTE + PPI are enabled for the fork demo.
+ * nRF52840dk overlay for the PPI fork demo: TIMER2 + GPIOTE + PPI are enabled.
  */
 
-&qspi {
-	status = "disabled";
-};
+// &spi20 {
+//     status = "okay";                                  /* Enable the SPI20 peripheral */
+//     pinctrl-0 = <&spi20_default>;                      /* Required: default pin config */
+//     pinctrl-names = "default";                         /* Only "default" needed if no sleep state */
+//     cs-gpios = <&gpio2 5 GPIO_ACTIVE_LOW>;              /* Chip-select via GPIO2 pin 5, active-low */
 
-&spi20 {
-    status = "okay";                                  /* Enable the SPI20 peripheral */
-    pinctrl-0 = <&spi20_default>;                      /* Required: default pin config */
-    pinctrl-names = "default";                         /* Only "default" needed if no sleep state */
-    cs-gpios = <&gpio2 5 GPIO_ACTIVE_LOW>;              /* Chip-select via GPIO2 pin 5, active-low */
-
-    sensor0: sensor@0 {
-        compatible = "vnd,spi-device";                 /* Binds node to a Zephyr driver binding */
-        reg = <0>;                                     /* Chip-select index 0 on this bus */
-        spi-max-frequency = <4000000>;                  /* Cap SPI clock at 4 MHz for this device */
-        label = "SENSOR0";                              /* Runtime name via device_get_binding() */
-    };
-};
-
-/*
- * A child node does not inherit its parent's disabled status, so the flash
- * node has to be turned off by hand. Without this,
- * CONFIG_DT_HAS_NORDIC_QSPI_NOR_ENABLED stays set and simply enabling
- * CONFIG_FLASH later would silently instantiate a driver that fights us for
- * the peripheral
- */
-&mx25r64 {
-	status = "disabled";
-};
+//     sensor0: sensor@0 {
+//         compatible = "vnd,spi-device";                 /* Binds node to a Zephyr driver binding */
+//         reg = <0>;                                     /* Chip-select index 0 on this bus */
+//         spi-max-frequency = <4000000>;                  /* Cap SPI clock at 4 MHz for this device */
+//         label = "SENSOR0";                              /* Runtime name via device_get_binding() */
+//     };
+// };
 
 &ppi {
 	status = "okay";

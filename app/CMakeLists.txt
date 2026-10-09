@@ -9,7 +9,6 @@ project(capstone)
 # app is a predesignated target that zephyr uses
 target_sources(app PRIVATE
     src/main.c
-    src/qspi_pattern.c
     src/ppi_fork.c
     src/hfxo.c
 )

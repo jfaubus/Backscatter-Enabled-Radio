@@ -3,7 +3,7 @@
  *
  * On reset the nRF52840 runs HFCLK from HFINT, an internal RC oscillator
  * accurate to only a few percent. Everything clocked from HFCLK inherits that
- * error -- TIMER's 16 MHz base, QSPI's 32 MHz SCK, UARTE's baud rate.
+ * error -- TIMER's 16 MHz base, UARTE's baud rate.
  *
  * Nothing starts the 32 MHz crystal on its own here: Zephyr's system clock
  * runs off LFCLK/RTC, and no driver in this application sets
