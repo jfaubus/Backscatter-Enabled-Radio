@@ -1,9 +1,7 @@
 /*
- * nRF52840dk overlay for  QSPI + PPI
+ * nRF52840dk overlay for QSPI
  *
- * Two independent things are going on here:
- *
- *  1. QSPI is taken away from Zephyr and given to the application.
+ *  QSPI is taken away from Zephyr and given to the application.
  *     Disabling the node removes both the nordic,qspi-nor flash driver and
  *     the mx25r64 child, so nrfx_qspi can own the peripheral outright. The
  *     pins are then selected at runtime (see src/qspi_pattern.c) onto the
@@ -15,8 +13,6 @@
  *
  *     CONFIG_NRFX_QSPI only depends on the node *existing*, not on it being
  *     enabled, so disabling it here does not disable the nrfx driver.
- *
- *  2. TIMER2 + GPIOTE + PPI are enabled for the fork demo.
  */
 
 // disable this so I can drive the code directly through nrfx_qspi. sorry Zephyr...
@@ -48,22 +44,4 @@
  */
 &mx25r64 {
 	status = "disabled";
-};
-
-&ppi {
-	status = "okay";
-};
-
-&gpiote {
-	status = "okay";
-};
-
-/*
- * TIMER2 rather than TIMER0/TIMER1: TIMER0 is claimed by the SoftDevice /
- * Bluetooth controller if one is ever added to this project, and TIMER1 is a
- * common default elsewhere. Nothing in Zephyr binds to this node -> it is
- * enabled purely so the resource is visibly reserved in the devicetree.
- */
-&timer2 {
-	status = "okay";
 };
