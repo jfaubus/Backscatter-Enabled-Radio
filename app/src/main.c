@@ -32,6 +32,11 @@ int main(void)
 		return err;
 	}
 
+	// read from sensor
+	// format advertising packet (ising ble_adv.c)
+	// convert advertising packet to binary to switch pattern (using modulator.c)
+	// generate the switch pattern using qspi_pattern.c
+
 	LOG_INF("firing %u-byte bursts every %u ms", QSPI_BURST_BYTES, BURST_PERIOD_MS);
 
 	while (true) {
