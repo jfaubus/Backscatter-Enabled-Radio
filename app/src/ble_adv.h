@@ -66,7 +66,7 @@ int ble_adv_build(const uint8_t adv_addr[BLE_ADDR_LEN],
  * Fill in the AdvData for a heart-rate reading:
  *
  *   Flags                 02 01 06
- *   Complete Local Name   07 09 'B' 'E' 'A' 'C' 'O' 'N'
+ *   Complete Local Name   0F 09 "julia_capstone"
  *   Service Data (0x180D) 05 16 0D 18 00 <bpm>
  *
  * The service data payload follows the Heart Rate Measurement layout (a flags

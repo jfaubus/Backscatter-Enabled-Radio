@@ -21,8 +21,7 @@
  *
  * Data is fed in air order (LSB of each byte first), so the register is kept
  * bit-reversed: bit 0 here is the spec's position 23. That makes the result
- * come out ready to send LSB first -- which puts the spec's MSB on air first.
- * 0xDA6000 is 0x00065B reversed across 24 bits.
+ * come out ready to send LSB first  which puts the spec's MSB on air first
  */
 static uint32_t crc24(const uint8_t *data, size_t len)
 {
@@ -120,7 +119,7 @@ int ble_adv_build(const uint8_t adv_addr[BLE_ADDR_LEN],
 
 int ble_adv_hr_data(uint8_t bpm, uint8_t *out, size_t out_size)
 {
-	static const uint8_t name[] = { 'B', 'E', 'A', 'C', 'O', 'N' };
+	static const uint8_t name[] = { 'J', 'U', 'L', 'I', 'A', 'C', 'A', 'P', 'S', 'T', 'O', 'N', 'E' };
 	size_t n = 0;
 
 	if (out_size < 3U + (2U + sizeof(name)) + 6U) {
@@ -138,7 +137,7 @@ int ble_adv_hr_data(uint8_t bpm, uint8_t *out, size_t out_size)
 	memcpy(&out[n], name, sizeof(name));
 	n += sizeof(name);
 
-	// Service Data, 16-bit UUID 0x180D (Heart Rate), little-endian
+	// Service Data, 16-bit UUID 0x180D (Heart Rate) little-endian
 	out[n++] = 0x05;
 	out[n++] = 0x16;
 	out[n++] = 0x0D;
