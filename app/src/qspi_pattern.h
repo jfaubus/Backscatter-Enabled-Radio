@@ -21,7 +21,7 @@
 #include <hal/nrf_qspi.h>
 
 /** Largest burst a single qspi_pattern_burst() call can emit. */
-#define QSPI_PATTERN_MAX_BURST 1024U
+#define QSPI_PATTERN_MAX_BURST 8192U
 
 /**
  * Bring up QSPI as a pattern generator.
