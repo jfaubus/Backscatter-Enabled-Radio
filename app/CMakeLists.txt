@@ -12,6 +12,7 @@ target_sources(app PRIVATE
     src/qspi_pattern.c
     src/hfxo.c
     src/modulator.c
+    src/rf_switch.c
     src/ble_adv.c
 )
 
