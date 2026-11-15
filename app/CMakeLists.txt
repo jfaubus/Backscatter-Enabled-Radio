@@ -13,6 +13,7 @@ target_sources(app PRIVATE
     src/hfxo.c
     src/ble_adv.c
     src/modulator.c
+    src/rf_switch.c
     src/switch_ctrl.c
 )
 

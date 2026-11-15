@@ -3,9 +3,10 @@
  *
  * QSPI driven directly by nrfx as a 4-bit-wide pattern generator at the
  * fastest clock the chip has (SCK up to 32 MHz off HFCLK128M), fed with
- * SP4T switch codes from the modulator.
+ * SP4T switch codes from the modulator. The SPDT keeps the antenna on the
+ * rectifier except for the duration of each burst.
  *
- * Boots with the switch held in harvest. Use the shell ("sw" + Tab) to hold
+ * Boots in harvest. Use the shell ("sw" + Tab) to hold
  * a reflect load, run the scope test pattern, or send a real advertising
  * packet; see switch_ctrl.h.
  */
@@ -13,7 +14,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-#include "modulator.h"
 #include "switch_ctrl.h"
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
@@ -33,7 +33,7 @@ int main(void)
 		return err;
 	}
 
-	LOG_INF("switch in harvest; \"sw test\" or \"sw adv\" starts bursts "
+	LOG_INF("SPDT on harvest; \"sw test\" or \"sw adv\" starts bursts "
 		"every %u ms", BURST_PERIOD_MS);
 
 	while (true) {
@@ -41,7 +41,7 @@ int main(void)
 		err = switch_ctrl_burst();
 		if (err != 0 && err != -EAGAIN) {
 			LOG_ERR("burst failed (%d); back to harvest", err);
-			switch_ctrl_hold(MOD_CODE_HARVEST);
+			switch_ctrl_harvest();
 		}
 
 		k_msleep(BURST_PERIOD_MS);

@@ -8,30 +8,18 @@
 #include <nrfx_qspi.h>
 #include <hal/nrf_gpio.h>
 
+#include "board_pins.h"
 #include "hfxo.h"
 
 LOG_MODULE_REGISTER(qspi_pattern, LOG_LEVEL_INF);
 
-/*
- * Pin map. These are NOT the DK's QSPI flash pins (P0.17/19/20-23). The
- * nRF52840 QSPI has independent PSEL registers for every signal, so the block
- * is moved onto six adjacent, otherwise-unused Arduino header pins:
- *
- *   Arduino   Port    QSPI signal
- *   -------   ----    -----------
- *   D2        P1.03   SCK
- *   D3        P1.04   CSN
- *   D4        P1.05   IO0
- *   D5        P1.06   IO1
- *   D6        P1.07   IO2
- *   D7        P1.08   IO3
- */
-#define QSPI_PIN_SCK NRF_GPIO_PIN_MAP(1, 3)
-#define QSPI_PIN_CSN NRF_GPIO_PIN_MAP(1, 4)
-#define QSPI_PIN_IO0 NRF_GPIO_PIN_MAP(1, 5)
-#define QSPI_PIN_IO1 NRF_GPIO_PIN_MAP(1, 6)
-#define QSPI_PIN_IO2 NRF_GPIO_PIN_MAP(1, 7)
-#define QSPI_PIN_IO3 NRF_GPIO_PIN_MAP(1, 8)
+// Pin map lives in board_pins.h (DK header pins vs. the PCB's QSPI pins)
+#define QSPI_PIN_SCK PIN_QSPI_SCK
+#define QSPI_PIN_CSN PIN_QSPI_CSN
+#define QSPI_PIN_IO0 PIN_QSPI_IO0
+#define QSPI_PIN_IO1 PIN_QSPI_IO1
+#define QSPI_PIN_IO2 PIN_QSPI_IO2
+#define QSPI_PIN_IO3 PIN_QSPI_IO3
 
 /* The peripheral polls the (nonexistent) memory during ACTIVATE. Fail fast
  * instead of sitting in nrfx's wait loop for half a second.
@@ -86,7 +74,7 @@ static void qspi_config_fill(nrfx_qspi_config_t *cfg, nrf_qspi_frequency_t sck_d
  * back 0x00, so activation completes.
  *
  * The pull is applied after nrfx_qspi_init() because init overwrites PIN_CNF.
- * (Strapping P1.06 to GND on the header has the same effect in hardware.)
+ * (Strapping IO1 to GND has the same effect in hardware.)
  * 
  * Basically there's no external flash pulling this line down saying "hey
  * Im ready" so were configuring it so that it constantly reads as "ready"
@@ -136,7 +124,7 @@ int qspi_pattern_init(nrf_qspi_frequency_t sck_div)
 		LOG_ERR("nrfx_qspi_activate failed (%d)", err);
 		if (err == -ETIMEDOUT) {
 			LOG_ERR("  ACTIVATE polls a status register that nothing "
-				"answers. Try strapping IO1 (P1.06) to GND.");
+				"answers. Try strapping IO1 to GND.");
 		}
 		nrfx_qspi_uninit();
 		return err;
@@ -144,9 +132,12 @@ int qspi_pattern_init(nrf_qspi_frequency_t sck_div)
 
 	initialised = true;
 
-	LOG_INF("QSPI pattern generator up: SCK %u Hz on P1.03, "
-		"IO0..IO3 on P1.05..P1.08, CSN on P1.04",
-		qspi_pattern_sck_hz(sck_div));
+	LOG_INF("QSPI pattern generator up: SCK %u Hz on P%u.%02u, "
+		"IO2 on P%u.%02u, IO3 on P%u.%02u",
+		qspi_pattern_sck_hz(sck_div),
+		QSPI_PIN_SCK >> 5, QSPI_PIN_SCK & 0x1FU,
+		QSPI_PIN_IO2 >> 5, QSPI_PIN_IO2 & 0x1FU,
+		QSPI_PIN_IO3 >> 5, QSPI_PIN_IO3 & 0x1FU);
 
 	return 0;
 }
