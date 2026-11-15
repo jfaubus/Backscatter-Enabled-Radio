@@ -11,6 +11,7 @@
 
 #include <hal/nrf_gpio.h>
 
+#include "ble_adv.h"
 #include "modulator.h"
 #include "qspi_pattern.h"
 
@@ -39,6 +40,30 @@ static K_MUTEX_DEFINE(sw_lock);
 
 static enum sw_mode mode = SW_MODE_STATIC;
 static uint8_t held_code = MOD_CODE_HARVEST;
+
+// Switch codes for the current pattern, ready for qspi_pattern_burst()
+static uint8_t burst_buf[QSPI_PATTERN_MAX_BURST];
+static size_t burst_len;
+
+/*
+ * Scope test bitstream, sent LSB first: 8 ones, 8 zeros, then 1010... for
+ * 16 bits. IO2/IO3 should step 00 -> 01 -> 11 every 4 SCK clocks (125 ns)
+ * for the first 8 us, every 5 clocks (156 ns) for the next 8 us, then mix
+ * the two. Harvest (10) sits before and after.
+ */
+static const uint8_t test_bits[] = { 0xFF, 0x00, 0x55, 0x55 };
+
+/*
+ * Advertising packets go out for channel 38 (2426 MHz), so the carrier has
+ * to sit at 2426 - 2.4 = 2423.6 MHz. Same random static address as the
+ * radio test, C0:BE:AC:00:00:01, least significant byte first.
+ */
+#define ADV_CHANNEL BLE_ADV_CHANNEL_38
+#define ADV_DEFAULT_BPM 72U
+
+static const uint8_t adv_addr[BLE_ADDR_LEN] = {
+	0x01, 0x00, 0x00, 0xAC, 0xBE, 0xC0
+};
 
 static const char *code_name(uint8_t code)
 {
@@ -111,36 +136,46 @@ int switch_ctrl_hold(uint8_t code)
 	return 0;
 }
 
-int switch_ctrl_pattern_start(void)
+int switch_ctrl_pattern_start(const uint8_t *bits, size_t nbits)
 {
+	int len;
 	int err = 0;
 
 	k_mutex_lock(&sw_lock, K_FOREVER);
 
-	if (mode != SW_MODE_PATTERN) {
+	len = modulator_build(bits, nbits, burst_buf, sizeof(burst_buf));
+	if (len < 0) {
+		err = len;
+	} else if (mode != SW_MODE_PATTERN) {
 		err = qspi_pattern_init(NRF_QSPI_FREQ_DIV1);
-		if (err == 0) {
-			mode = SW_MODE_PATTERN;
-		} else {
-			// Never leave the switch on whatever code it was holding
-			gpio_take_pins(MOD_CODE_HARVEST);
-			held_code = MOD_CODE_HARVEST;
+	}
+
+	if (err == 0) {
+		burst_len = (size_t)len;
+		mode = SW_MODE_PATTERN;
+	} else {
+		// Never leave the switch on whatever it was doing before
+		if (mode == SW_MODE_PATTERN) {
+			qspi_pattern_stop();
 		}
+		gpio_take_pins(MOD_CODE_HARVEST);
+		mode = SW_MODE_STATIC;
+		held_code = MOD_CODE_HARVEST;
 	}
 
 	k_mutex_unlock(&sw_lock);
 
-	return err;
+	return (err == 0) ? len : err;
 }
 
-int switch_ctrl_burst(const void *data, size_t len)
+int switch_ctrl_burst(void)
 {
 	int err = -EAGAIN;
 
 	k_mutex_lock(&sw_lock, K_FOREVER);
 
 	if (mode == SW_MODE_PATTERN) {
-		err = qspi_pattern_burst(data, len);
+		err = qspi_pattern_burst(burst_buf, burst_len);
 	}
 
 	k_mutex_unlock(&sw_lock);
@@ -207,18 +242,66 @@ static int cmd_code(const struct shell *sh, size_t argc, char **argv)
 
 static int cmd_test(const struct shell *sh, size_t argc, char **argv)
 {
-	int err;
+	int len;
 
 	ARG_UNUSED(argc);
 	ARG_UNUSED(argv);
 
-	err = switch_ctrl_pattern_start();
-	if (err != 0) {
-		shell_error(sh, "QSPI failed to start (%d); back in harvest", err);
-		return err;
+	len = switch_ctrl_pattern_start(test_bits, 8U * sizeof(test_bits));
+	if (len < 0) {
+		shell_error(sh, "failed to start (%d); back in harvest", len);
+		return len;
 	}
 
-	shell_print(sh, "running modulated test bursts on P1.07/P1.08");
+	shell_print(sh, "running %u bit test pattern (%d bytes) on P1.07/P1.08",
+		    8U * sizeof(test_bits), len);
+
+	return 0;
+}
+
+static int cmd_adv(const struct shell *sh, size_t argc, char **argv)
+{
+	uint8_t ad[BLE_ADV_DATA_MAX];
+	uint8_t pkt[BLE_ADV_PACKET_MAX];
+	unsigned long bpm = ADV_DEFAULT_BPM;
+	char *end;
+	int ad_len;
+	int pkt_len;
+	int len;
+
+	if (argc > 1) {
+		bpm = strtoul(argv[1], &end, 0);
+		if (*end != '\0' || bpm > 255U) {
+			shell_error(sh, "bpm must be 0..255");
+			return -EINVAL;
+		}
+	}
+
+	ad_len = ble_adv_hr_data((uint8_t)bpm, ad, sizeof(ad));
+	if (ad_len < 0) {
+		shell_error(sh, "ble_adv_hr_data failed (%d)", ad_len);
+		return ad_len;
+	}
+
+	pkt_len = ble_adv_build(adv_addr, ad, (size_t)ad_len, ADV_CHANNEL,
+				pkt, sizeof(pkt));
+	if (pkt_len < 0) {
+		shell_error(sh, "ble_adv_build failed (%d)", pkt_len);
+		return pkt_len;
+	}
+
+	len = switch_ctrl_pattern_start(pkt, 8U * (size_t)pkt_len);
+	if (len < 0) {
+		shell_error(sh, "failed to start (%d); back in harvest", len);
+		return len;
+	}
+
+	shell_print(sh, "sending advertising packet: %lu bpm, channel %u, "
+		    "%d bytes = %d bits (~%d us on air), %d byte burst",
+		    bpm, ADV_CHANNEL, pkt_len, 8 * pkt_len, 8 * pkt_len, len);
+	shell_print(sh, "carrier must be at 2423.6 MHz for the receiver on "
+		    "2426 MHz");
+	shell_hexdump(sh, pkt, (size_t)pkt_len);
 
 	return 0;
 }
@@ -231,7 +314,7 @@ static int cmd_status(const struct shell *sh, size_t argc, char **argv)
 	k_mutex_lock(&sw_lock, K_FOREVER);
 
 	if (mode == SW_MODE_PATTERN) {
-		shell_print(sh, "pattern: modulated test bursts");
+		shell_print(sh, "pattern: %u byte burst", burst_len);
 	} else {
 		shell_print(sh, "static: %s (code %u%u)", code_name(held_code),
 			    (held_code >> 1) & 1U, held_code & 1U);
@@ -249,6 +332,8 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sw_cmds,
 	SHELL_CMD_ARG(code, NULL, "Hold a raw V2:V1 code: code <0-3>",
 		      cmd_code, 2, 0),
 	SHELL_CMD_ARG(test, NULL, "Run the modulated test bursts", cmd_test, 1, 0),
+	SHELL_CMD_ARG(adv, NULL, "Send a heart-rate advertising packet: adv [bpm]",
+		      cmd_adv, 1, 1),
 	SHELL_CMD_ARG(status, NULL, "Show the current switch mode", cmd_status, 1, 0),
 	SHELL_SUBCMD_SET_END
 );

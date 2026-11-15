@@ -119,7 +119,7 @@ int ble_adv_build(const uint8_t adv_addr[BLE_ADDR_LEN],
 
 int ble_adv_hr_data(uint8_t bpm, uint8_t *out, size_t out_size)
 {
-	static const uint8_t name[] = { 'B', 'E', 'A', 'C', 'O', 'N' };
+	static const uint8_t name[] = { 'C', 'A', 'P', 'S', 'T', 'O' };
 	size_t n = 0;
 
 	if (out_size < 3U + (2U + sizeof(name)) + 6U) {
