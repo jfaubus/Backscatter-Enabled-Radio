@@ -7,9 +7,8 @@
  * bits per SCK clock out of IO0..IO3, so a RAM buffer becomes an arbitrary
  * 4-bit-wide waveform at up to 32 Mbit/s per line.
  *
- * There is no memory device on the bus: the pins are mapped onto the Arduino
- * header, not the DK's onboard MX25R6435F. See the pin table in
- * qspi_pattern.c.
+ * The pins come from the board overlay (zephyr,user node); see the pin table
+ * there and board_pins.h.
  */
 
 #ifndef QSPI_PATTERN_H_

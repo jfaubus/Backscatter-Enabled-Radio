@@ -13,7 +13,7 @@
 
 LOG_MODULE_REGISTER(qspi_pattern, LOG_LEVEL_INF);
 
-// Pin map lives in board_pins.h (DK header pins vs. the PCB's QSPI pins)
+// Pin map comes from the board overlay via board_pins.h
 #define QSPI_PIN_SCK PIN_QSPI_SCK
 #define QSPI_PIN_CSN PIN_QSPI_CSN
 #define QSPI_PIN_IO0 PIN_QSPI_IO0
