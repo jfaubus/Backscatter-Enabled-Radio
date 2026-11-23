@@ -3,3 +3,10 @@ build/
 venv/
 .vscode/
 .DS_Store
+.venv/
+.west/
+bootloader/
+doc/
+modules/
+tools/
+zephyr/

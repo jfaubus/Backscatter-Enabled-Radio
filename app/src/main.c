@@ -11,6 +11,7 @@
 
 #include "modulator.h"
 #include "qspi_pattern.h"
+#include "sensor.h"
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
@@ -49,11 +50,15 @@ int main(void)
 	LOG_INF("firing %u bit test sequence (%d bytes) every %u ms",
 		TEST_NBITS, len, BURST_PERIOD_MS);
 	// read from sensor
+	init_sensor();
+	sensor_response_t response;
+	read_sensor(&response);
+
 	// format advertising packet (ising ble_adv.c)
 	// convert advertising packet to binary to switch pattern (using modulator.c)
 	// generate the switch pattern using qspi_pattern.c
 
-	LOG_INF("firing %u-byte bursts every %u ms", QSPI_BURST_BYTES, BURST_PERIOD_MS);
+	//LOG_INF("firing %u-byte bursts every %u ms", QSPI_BURST_BYTES, BURST_PERIOD_MS);
 
 	while (true) {
 		err = qspi_pattern_burst(mod_buf, (size_t)len);
