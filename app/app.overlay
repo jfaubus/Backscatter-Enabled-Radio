@@ -1,0 +1,10 @@
+&i2c0 {
+    status = "okay";
+
+    max30101: max30101@57 {
+        compatible = "maxim,max30101";
+        reg = <0x57>;
+        /* Recent Zephyr versions also require a mode property,
+           plus optional LED/slot/sample-rate settings. See step 4. */
+    };
+};
