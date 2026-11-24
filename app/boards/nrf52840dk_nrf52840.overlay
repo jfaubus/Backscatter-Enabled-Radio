@@ -39,6 +39,11 @@
 		qspi-io2-gpios = <&gpio0 22 0>;
 		qspi-io3-gpios = <&gpio0 23 0>;
 		ctrl-spdt-gpios = <&gpio0 24 0>;
+
+		// AEM30940 STATUS[0], [1], [2], read by src/pmic.c
+		pmic-status-gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>,
+				    <&gpio0 3 GPIO_ACTIVE_HIGH>,
+				    <&gpio1 15 GPIO_ACTIVE_HIGH>;
 	};
 };
 

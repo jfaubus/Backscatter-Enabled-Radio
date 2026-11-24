@@ -15,6 +15,7 @@ target_sources(app PRIVATE
     src/modulator.c
     src/rf_switch.c
     src/switch_ctrl.c
+    src/pmic.c
 )
 
 target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

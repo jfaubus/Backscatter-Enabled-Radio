@@ -14,6 +14,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
+#include "pmic.h"
 #include "switch_ctrl.h"
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
@@ -26,6 +27,11 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 int main(void)
 {
 	int err;
+
+	err = pmic_init();
+	if (err != 0) {
+		LOG_ERR("pmic_init failed (%d)", err);
+	}
 
 	err = switch_ctrl_init();
 	if (err != 0) {
